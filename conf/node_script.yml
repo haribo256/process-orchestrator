@@ -1,0 +1,9 @@
+name: node_script
+executable: "node.exe"
+arguments:
+  - "-e"
+  - "(async function main() { console.log(new Date()); /* console.log(process.env); */ await new Promise(resolve => setTimeout(resolve, 20000)); })()"
+#working_directory: "C:\\Projects\\haribo256\\api-server\\target\\debug"
+#log_file: "C:\\temp\\output_test1.log"
+environment_variables:
+  test: hello

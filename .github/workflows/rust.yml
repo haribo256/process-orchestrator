@@ -35,7 +35,7 @@ jobs:
       with:
         name: 1.0.${{ github.run_number }}
         tag: refs/heads/release/1.0.${{ github.run_number }}
-        artifacts: "target/*.exe"
+        artifacts: "**/*.exe"
         bodyFile: "README.md"
         token: ${{ secrets.GITHUB_TOKEN }}
 #     - name: Create Release

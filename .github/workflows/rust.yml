@@ -22,5 +22,19 @@ jobs:
 #         rustup toolchain install stable-x86_64-w64-mingw32-gcc
     - name: Build
       run: cargo build --release --verbose
-    - name: Run tests
-      run: cargo test --verbose
+#     - name: Run tests
+#       run: cargo test --verbose
+# ${{ github.run_number }}
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+#         body: |
+#           Changes in this Release
+#           - First Change
+#           - Second Change
+        draft: false
+        prerelease: false

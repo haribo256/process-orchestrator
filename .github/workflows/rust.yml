@@ -19,6 +19,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 #     - name: Install windows toolchain
 #       run: |
 #         rustup target add x86_64-w64-mingw32-gcc

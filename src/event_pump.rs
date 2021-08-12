@@ -1,9 +1,10 @@
-use std::sync::mpsc::{Receiver, Sender, channel};
-use std::error::Error;
-use log::{info, error};
 use crate::config::load_stateful_process_configs;
 use crate::stateful_process::{StatefulProcessConfig, StatefulProcess};
+
+use std::sync::mpsc::{Receiver, Sender, channel};
+use std::error::Error;
 use std::time::Duration;
+use log::{info, error, trace};
 
 pub type VoidResult = Result<(), Box<dyn Error>>;
 
@@ -25,6 +26,7 @@ pub enum Event {
   ProcessConfigLoaded(StatefulProcessConfig),
   ProcessRequestStart(String),
   ProcessRequestPoll(String),
+  ProcessRequestStop(String),
   ProcessStopped(String),
 }
 
@@ -57,7 +59,7 @@ impl EventPump {
 
       if let Ok(message) = result {
         let message_string = format!("{:?}", &message);
-        info!("EventPump: {}", message_string);
+        trace!("EventPump: {}", message_string);
 
         let message_result = self.process_message(message);
 
@@ -78,6 +80,7 @@ impl EventPump {
       Event::ProcessConfigLoaded(config) => self.on_process_config_loaded(config),
       Event::ProcessRequestStart(name) => self.on_process_start(name),
       Event::ProcessRequestPoll(process_id) => self.on_request_process_poll(process_id),
+      Event::ProcessRequestStop(process_id) => self.on_request_process_stop(process_id),
       Event::ProcessStopped(process_id) => self.on_process_stopped(process_id),
       _ => panic!("Message not recognized [{:?}]", message),
     }
@@ -85,7 +88,13 @@ impl EventPump {
 
   fn on_orchestrator_tick(&mut self) -> VoidResult {
     for process in &mut self.processes {
-      process.poll();
+      process.poll()?;
+    }
+
+    for process in &mut self.processes {
+      if process.is_recycle_required() {
+        self.sender.send(Event::ProcessRequestStop(process.id.clone())).unwrap();
+      }
     }
 
     Ok(())
@@ -96,7 +105,7 @@ impl EventPump {
     ctrlc::set_handler(move || {
       ctrlc_sender.send(Event::OrchestratorRequestStop()).unwrap();
     })?;
-    info!("EventPump: Registered CTRL-C handler");
+    trace!("EventPump: Registered CTRL-C handler");
 
     let stateful_process_configs = load_stateful_process_configs()?;
     info!("EventPump: Loaded {} config files", stateful_process_configs.len());
@@ -108,9 +117,9 @@ impl EventPump {
     }
 
     let timer_sender = self.sender.clone();
-    let thread = std::thread::spawn(move || {
+    std::thread::spawn(move || {
       loop {
-        timer_sender.send(Event::OrchestratorTick());
+        timer_sender.send(Event::OrchestratorTick()).unwrap();
         std::thread::sleep(Duration::from_millis(1000));
       }
     });
@@ -133,7 +142,7 @@ impl EventPump {
     }
 
     for process in &self.processes {
-      process.request_stop();
+      self.sender.send(Event::ProcessRequestStop(process.id.clone())).unwrap();
     }
 
     Ok(())
@@ -152,14 +161,26 @@ impl EventPump {
     Ok(())
   }
 
+  fn on_request_process_stop(&mut self, process_id: String) -> VoidResult {
+    let mut process_option = self.find_process_by_process_id(process_id.clone());
+
+    if let Some(process) = process_option {
+      process.request_stop();
+    }
+
+    Ok(())
+  }
+
   fn on_process_stopped(&mut self, process_id: String) -> VoidResult {
-    let process_options = self.get_process_by_process_id(process_id.clone());
-    if process_options.is_none() {
+    let process_option = self.find_process_by_process_id(process_id.clone());
+    if process_option.is_none() {
       return Ok(())
     }
 
-    let process = process_options.unwrap();
+    let process = process_option.unwrap();
     let process_name = process.config.name.clone();
+
+    process.on_stopped();
 
     let index_option = self.processes.iter().position(|p| p.id == process_id);
     if let Some(index) = index_option {
@@ -181,10 +202,19 @@ impl EventPump {
   }
 
   fn on_request_process_poll(&mut self, process_id: String) -> VoidResult {
-    let item = self.get_process_by_process_id(process_id.clone());
-    if let Some(process) = item {
+    let process_option: Option<&mut StatefulProcess> = self.processes.iter_mut().find(|p| p.id == process_id);
+
+    if let Some(process) = process_option {
+      process.poll()?;
+
       if !process.is_running() {
         self.sender.send(Event::ProcessStopped(process_id.clone())).unwrap();
+        return Ok(())
+      }
+
+      if process.is_recycle_required() {
+        self.sender.send(Event::ProcessRequestStop(process_id.clone())).unwrap();
+        return Ok(())
       }
     }
 
@@ -197,13 +227,18 @@ impl EventPump {
     Ok(())
   }
 
-  fn get_process_by_process_id(&self, process_id: String) -> Option<&StatefulProcess> {
-    let item = self.processes.iter().find(|p| p.id == process_id);
+  fn find_process_by_process_id(&mut self, process_id: String) -> Option<&mut StatefulProcess> {
+    let item = self.processes.iter_mut().find(|p| p.id == process_id);
     return item;
   }
 
-  fn get_config_by_name(&self, name: String) -> Option<&StatefulProcessConfig> {
-    let item = self.configs.iter().find(|p| p.name == name);
-    return item;
-  }
+  // fn get_process_by_process_id_as_mut(&mut self, process_id: String) -> Option<&mut StatefulProcess> {
+  //   let mut item = self.processes.iter().find(|p| p.id == process_id);
+  //   return item;
+  // }
+
+  // fn get_config_by_name(&self, name: String) -> Option<&StatefulProcessConfig> {
+  //   let item = self.configs.iter().find(|p| p.name == name);
+  //   return item;
+  // }
 }

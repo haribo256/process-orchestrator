@@ -8,17 +8,16 @@ use crate::errors::OrchestratorError;
 use crate::windows_service_host::{start_windows_service};
 
 use log::LevelFilter;
-use std::path::{PathBuf};
 use structopt::StructOpt;
 use simplelog::{CombinedLogger, TermLogger, Config, TerminalMode, ColorChoice, WriteLogger};
 use std::fs::File;
 
 #[cfg(windows)]
 fn main() -> windows_service::Result<()> {
-  // let cli_options = CliOptions::from_args();
+  let cli_options = CliOptions::from_args();
 
   set_current_directory_as_executable_directory();
-  set_executable_logging_file();
+  set_executable_logging_file(cli_options.verbose);
 
   let start_result = start_windows_service();
 
@@ -40,8 +39,11 @@ fn main() {
   name = "process-orchestrator",
   about = "Keeps processes up and running using desired-state-configuration")]
 struct CliOptions {
-  #[structopt(short = "c", long = "config-directory")]
-  pub config_directory: Option<PathBuf>,
+  // #[structopt(short = "c", long = "config-directory")]
+  // pub config_directory: Option<PathBuf>,
+
+  #[structopt(long = "verbose")]
+  pub verbose: bool,
 }
 
 fn set_current_directory_as_executable_directory() {
@@ -50,15 +52,20 @@ fn set_current_directory_as_executable_directory() {
   std::env::set_current_dir(path).unwrap();
 }
 
-fn set_executable_logging_file() {
+fn set_executable_logging_file(verbose: bool) {
   let executable_path = std::env::current_exe().unwrap();
   let executable_name = executable_path.file_name().unwrap().to_str().unwrap();
   let log_file_name = format!("{}.log", executable_name);
 
+  let mut level_filter = LevelFilter::Info;
+  if verbose {
+    level_filter = LevelFilter::Trace;
+  }
+
   CombinedLogger::init(
     vec![
-      TermLogger::new(LevelFilter::Info, Config::default(), TerminalMode::Mixed, ColorChoice::Auto),
-      WriteLogger::new(LevelFilter::Info, Config::default(), File::create(log_file_name).unwrap()),
+      TermLogger::new(level_filter, Config::default(), TerminalMode::Mixed, ColorChoice::Auto),
+      WriteLogger::new(level_filter, Config::default(), File::create(log_file_name).unwrap()),
     ]
   ).unwrap();
 }

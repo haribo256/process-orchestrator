@@ -231,14 +231,4 @@ impl EventPump {
     let item = self.processes.iter_mut().find(|p| p.id == process_id);
     return item;
   }
-
-  // fn get_process_by_process_id_as_mut(&mut self, process_id: String) -> Option<&mut StatefulProcess> {
-  //   let mut item = self.processes.iter().find(|p| p.id == process_id);
-  //   return item;
-  // }
-
-  // fn get_config_by_name(&self, name: String) -> Option<&StatefulProcessConfig> {
-  //   let item = self.configs.iter().find(|p| p.name == name);
-  //   return item;
-  // }
 }

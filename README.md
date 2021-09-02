@@ -16,8 +16,7 @@ The process-orchestrator will search the `conf` folder for YAML files, and load 
 | executable            | string        | Path to the executable to run                                               |
 | arguments             | string array  | Arguments to pass on the command line to the executable to running it       |
 | working_directory     | string        | Path to the current working directory the executable should be run under    |
-| log_file              | string        | The log file where the STDOUT / STDERR is written to. If this is omitted,   | 
-|                       |               | it will be output on the process-orchestrator's STDOUT / STDERR.            |
+| log_file              | string        | The log file where the STDOUT / STDERR is written to. If this is omitted, it will be output on the process-orchestrator's STDOUT / STDERR. | 
 | environment_variables | string map    | Key/value pairs that are passed to the executable as environment variables  |
 
 ## Example

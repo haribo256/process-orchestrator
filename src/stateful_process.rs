@@ -135,12 +135,6 @@ impl StatefulProcess {
       working_directory_cstring = CString::new(work.as_str())?.into_raw();
     }
 
-    // let arguments = config.arguments
-    // let command_line_cstring = CString::from(command_line);
-    // let environment_cstring = Some(CString::new(environment)?);
-    // let working_directory_cstring = Some(CString::new(&config.working_directory)?);
-    // let cstr_none: *mut c_void;
-
     unsafe {
       let mut process_information = std::mem::zeroed::<PROCESS_INFORMATION>();
       let mut startup_information = std::mem::zeroed::<STARTUPINFOA>();
@@ -168,41 +162,6 @@ impl StatefulProcess {
 
         self.log_file_handle = Some(log_file_handle);
       }
-      // else {
-      //   // let current_process_handle = OpenProcess(
-      //   //   PROCESS_DUP_HANDLE,
-      //   //   TRUE,
-      //   //   GetCurrentProcessId());
-      //   let stdin_handle = GetStdHandle(STD_INPUT_HANDLE);
-      //   let stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
-      //   let stderr_handle = GetStdHandle(STD_ERROR_HANDLE);
-      //
-      //   // let mut stdout_handle_dup = 0 as HANDLE;
-      //   // let mut stderr_handle_dup = 0 as HANDLE;
-      //
-      //   // DuplicateHandle(
-      //   //   current_process_handle,
-      //   //   stdout_handle,
-      //   //   current_process_handle,
-      //   //   &mut stdout_handle_dup,
-      //   //   0,
-      //   //   TRUE,
-      //   //   DUPLICATE_SAME_ACCESS);
-      //   //
-      //   // DuplicateHandle(
-      //   //   current_process_handle,
-      //   //   stderr_handle,
-      //   //   current_process_handle,
-      //   //   &mut stderr_handle_dup,
-      //   //   0,
-      //   //   TRUE,
-      //   //   DUPLICATE_SAME_ACCESS);
-      //
-      //   startup_information.dwFlags = STARTF_USESTDHANDLES;
-      //   startup_information.hStdInput = stdin_handle;
-      //   startup_information.hStdOutput = stdout_handle;
-      //   startup_information.hStdError = stderr_handle;
-      // }
 
       if CreateProcessA(
         0 as LPCSTR,
